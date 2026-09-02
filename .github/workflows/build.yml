@@ -33,6 +33,11 @@ jobs:
           submodules: recursive
           fetch-depth: 1
 
+      - name: Ensure Submodules are synced
+        run: |
+          git submodule sync --recursive
+          git submodule update --init --recursive --depth 1
+
       - name: Expand Swap Space
         run: |
           sudo swapoff -a || true
@@ -68,7 +73,7 @@ jobs:
         env:
           BUILD_VARIANT: ${{ github.event.inputs.build_variant || 'Standalone' }}
         run: |
-          GRADLE_ARGS="--stacktrace --no-daemon -Dorg.gradle.jvmargs=-Xmx4g"
+          GRADLE_ARGS="--stacktrace --info --no-daemon -Dorg.gradle.jvmargs=-Xmx4g"
           echo "Building variant: $BUILD_VARIANT"
           if [ "$BUILD_VARIANT" = "Standalone" ]; then
             ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone $GRADLE_ARGS
@@ -79,6 +84,12 @@ jobs:
           elif [ "$BUILD_VARIANT" = "All" ]; then
             ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone :TMessagesProj_App:assembleAfatRelease $GRADLE_ARGS
           fi
+
+      - name: Dump CMake and Ninja logs on failure
+        if: failure()
+        run: |
+          echo "=== CMake and Ninja Logs ==="
+          find TMessagesProj/.cxx -type f \( -name "*.log" -o -name "*.txt" \) -exec echo "--- {} ---" \; -exec tail -n 100 {} \; || true
 
       - name: Collect APKs
         run: |
