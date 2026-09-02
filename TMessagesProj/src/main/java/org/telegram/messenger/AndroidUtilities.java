@@ -4717,13 +4717,13 @@ public class AndroidUtilities {
         linearLayout.addView(tableView, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT, Gravity.TOP | Gravity.FILL_HORIZONTAL, 14, 18, 14, 0));
 
         if (!TextUtils.isEmpty(address)) {
-            tableView.addRow(getString(R.string.UseProxyAddress), address);
+            tableView.addRow(type == SharedConfig.ProxyInfo.TYPE_WORKER ? getString(R.string.UseProxyWorkerAddress) : getString(R.string.UseProxyAddress), address);
         }
-        if (!TextUtils.isEmpty(port)) {
+        if (!TextUtils.isEmpty(port) && type != SharedConfig.ProxyInfo.TYPE_WORKER) {
             tableView.addRow(getString(R.string.UseProxyPort), port);
         }
         if (!TextUtils.isEmpty(secret)) {
-            tableView.addRow(getString(R.string.UseProxySecret), secret);
+            tableView.addRow(type == SharedConfig.ProxyInfo.TYPE_WORKER ? getString(R.string.UseProxyWorkerSecret) : getString(R.string.UseProxySecret), secret);
         }
         if (!TextUtils.isEmpty(user)) {
             tableView.addRow(getString(R.string.UseProxyUsername), user);
@@ -4803,7 +4803,19 @@ public class AndroidUtilities {
                 editor.remove("proxy_user");
                 editor.putString("proxy_secret", secret != null ? secret : "");
                 editor.putInt("proxy_type", SharedConfig.ProxyInfo.TYPE_WORKER);
-                info = new SharedConfig.ProxyInfo(address, p, "", "", secret != null ? secret : "", SharedConfig.ProxyInfo.TYPE_WORKER);
+                String cleanAddr = address.trim();
+                if (cleanAddr.startsWith("https://")) {
+                    cleanAddr = cleanAddr.substring(8);
+                } else if (cleanAddr.startsWith("http://")) {
+                    cleanAddr = cleanAddr.substring(7);
+                }
+                int slashIndex = cleanAddr.indexOf('/');
+                if (slashIndex != -1) {
+                    cleanAddr = cleanAddr.substring(0, slashIndex);
+                }
+                editor.putString("proxy_ip", cleanAddr);
+                editor.putInt("proxy_port", 443);
+                info = new SharedConfig.ProxyInfo(cleanAddr, 443, "", "", secret != null ? secret : "", SharedConfig.ProxyInfo.TYPE_WORKER);
             } else if (TextUtils.isEmpty(secret)) {
                 editor.remove("proxy_secret");
                 if (TextUtils.isEmpty(password)) {

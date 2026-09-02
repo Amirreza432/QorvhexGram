@@ -212,15 +212,33 @@ public class ProxySettingsActivity extends BaseFragment {
                     if (getParentActivity() == null) {
                         return;
                     }
-                    currentProxyInfo.address = inputFields[FIELD_IP].getText().toString();
-                    currentProxyInfo.port = Utilities.parseInt(inputFields[FIELD_PORT].getText().toString());
                     currentProxyInfo.type = currentType;
-                    if (currentType == TYPE_SOCKS5) {
+                    if (currentType == TYPE_WORKER) {
+                        String addr = inputFields[FIELD_IP].getText().toString().trim();
+                        if (addr.startsWith("https://")) {
+                            addr = addr.substring(8);
+                        } else if (addr.startsWith("http://")) {
+                            addr = addr.substring(7);
+                        }
+                        int slashIndex = addr.indexOf('/');
+                        if (slashIndex != -1) {
+                            addr = addr.substring(0, slashIndex);
+                        }
+                        currentProxyInfo.address = addr;
+                        currentProxyInfo.port = 443;
+                        currentProxyInfo.secret = inputFields[FIELD_SECRET].getText().toString().trim();
+                        currentProxyInfo.username = "";
+                        currentProxyInfo.password = "";
+                    } else if (currentType == TYPE_SOCKS5) {
+                        currentProxyInfo.address = inputFields[FIELD_IP].getText().toString().trim();
+                        currentProxyInfo.port = Utilities.parseInt(inputFields[FIELD_PORT].getText().toString());
                         currentProxyInfo.secret = "";
                         currentProxyInfo.username = inputFields[FIELD_USER].getText().toString();
                         currentProxyInfo.password = inputFields[FIELD_PASSWORD].getText().toString();
                     } else {
-                        currentProxyInfo.secret = inputFields[FIELD_SECRET].getText().toString();
+                        currentProxyInfo.address = inputFields[FIELD_IP].getText().toString().trim();
+                        currentProxyInfo.port = Utilities.parseInt(inputFields[FIELD_PORT].getText().toString());
+                        currentProxyInfo.secret = inputFields[FIELD_SECRET].getText().toString().trim();
                         currentProxyInfo.username = "";
                         currentProxyInfo.password = "";
                     }
@@ -515,42 +533,57 @@ public class ProxySettingsActivity extends BaseFragment {
             String secret = inputFields[FIELD_SECRET].getText().toString();
             String url;
             try {
-                if (!TextUtils.isEmpty(address)) {
-                    params.append("server=").append(URLEncoder.encode(address, "UTF-8"));
-                }
-                if (!TextUtils.isEmpty(port)) {
-                    if (params.length() != 0) {
-                        params.append("&");
-                    }
-                    params.append("port=").append(URLEncoder.encode(port, "UTF-8"));
-                }
                 if (currentType == TYPE_WORKER) {
                     url = "tg://worker?";
+                    String addr = address.trim();
+                    if (addr.startsWith("https://")) {
+                        addr = addr.substring(8);
+                    } else if (addr.startsWith("http://")) {
+                        addr = addr.substring(7);
+                    }
+                    int slashIndex = addr.indexOf('/');
+                    if (slashIndex != -1) {
+                        addr = addr.substring(0, slashIndex);
+                    }
+                    if (!TextUtils.isEmpty(addr)) {
+                        params.append("server=").append(URLEncoder.encode(addr, "UTF-8"));
+                    }
                     if (!TextUtils.isEmpty(secret)) {
                         if (params.length() != 0) {
                             params.append("&");
                         }
-                        params.append("secret=").append(URLEncoder.encode(secret, "UTF-8"));
+                        params.append("secret=").append(URLEncoder.encode(secret.trim(), "UTF-8"));
                     }
-                } else if (currentType == TYPE_MTPROTO) {
-                    url = "https://t.me/proxy?";
-                    if (params.length() != 0) {
-                        params.append("&");
-                    }
-                    params.append("secret=").append(URLEncoder.encode(secret, "UTF-8"));
                 } else {
-                    url = "https://t.me/socks?";
-                    if (!TextUtils.isEmpty(user)) {
-                        if (params.length() != 0) {
-                            params.append("&");
-                        }
-                        params.append("user=").append(URLEncoder.encode(user, "UTF-8"));
+                    if (!TextUtils.isEmpty(address)) {
+                        params.append("server=").append(URLEncoder.encode(address, "UTF-8"));
                     }
-                    if (!TextUtils.isEmpty(password)) {
+                    if (!TextUtils.isEmpty(port)) {
                         if (params.length() != 0) {
                             params.append("&");
                         }
-                        params.append("pass=").append(URLEncoder.encode(password, "UTF-8"));
+                        params.append("port=").append(URLEncoder.encode(port, "UTF-8"));
+                    }
+                    if (currentType == TYPE_MTPROTO) {
+                        url = "https://t.me/proxy?";
+                        if (params.length() != 0) {
+                            params.append("&");
+                        }
+                        params.append("secret=").append(URLEncoder.encode(secret, "UTF-8"));
+                    } else {
+                        url = "https://t.me/socks?";
+                        if (!TextUtils.isEmpty(user)) {
+                            if (params.length() != 0) {
+                                params.append("&");
+                            }
+                            params.append("user=").append(URLEncoder.encode(user, "UTF-8"));
+                        }
+                        if (!TextUtils.isEmpty(password)) {
+                            if (params.length() != 0) {
+                                params.append("&");
+                            }
+                            params.append("pass=").append(URLEncoder.encode(password, "UTF-8"));
+                        }
                     }
                 }
             } catch (Exception ignore) {
@@ -721,10 +754,14 @@ public class ProxySettingsActivity extends BaseFragment {
     }
 
     private void checkShareDone(boolean animated) {
-        if (shareCell == null || doneItem == null || inputFields[FIELD_IP] == null || inputFields[FIELD_PORT] == null) {
+        if (shareCell == null || doneItem == null || inputFields[FIELD_IP] == null) {
             return;
         }
-        setShareDoneEnabled(inputFields[FIELD_IP].length() != 0 && Utilities.parseInt(inputFields[FIELD_PORT].getText().toString()) != 0, animated);
+        if (currentType == TYPE_WORKER) {
+            setShareDoneEnabled(inputFields[FIELD_IP].length() != 0, animated);
+        } else {
+            setShareDoneEnabled(inputFields[FIELD_IP].length() != 0 && inputFields[FIELD_PORT] != null && Utilities.parseInt(inputFields[FIELD_PORT].getText().toString()) != 0, animated);
+        }
     }
 
     private void setProxyType(int type, boolean animated) {
@@ -776,27 +813,36 @@ public class ProxySettingsActivity extends BaseFragment {
                 bottomCells[0].setVisibility(View.VISIBLE);
                 bottomCells[1].setVisibility(View.GONE);
                 bottomCells[2].setVisibility(View.GONE);
+                ((View) inputFields[FIELD_PORT].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_SECRET].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_PASSWORD].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_USER].getParent()).setVisibility(View.VISIBLE);
+                inputFields[FIELD_IP].setHintText(LocaleController.getString(R.string.UseProxyAddress));
             } else if (currentType == 1) {
                 bottomCells[0].setVisibility(View.GONE);
                 bottomCells[1].setVisibility(View.VISIBLE);
                 bottomCells[2].setVisibility(View.GONE);
+                ((View) inputFields[FIELD_PORT].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_SECRET].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_PASSWORD].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_USER].getParent()).setVisibility(View.GONE);
+                inputFields[FIELD_IP].setHintText(LocaleController.getString(R.string.UseProxyAddress));
+                inputFields[FIELD_SECRET].setHintText(LocaleController.getString(R.string.UseProxySecret));
             } else if (currentType == 2) {
                 bottomCells[0].setVisibility(View.GONE);
                 bottomCells[1].setVisibility(View.GONE);
                 bottomCells[2].setVisibility(View.VISIBLE);
+                ((View) inputFields[FIELD_PORT].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_SECRET].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_PASSWORD].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_USER].getParent()).setVisibility(View.GONE);
+                inputFields[FIELD_IP].setHintText(LocaleController.getString(R.string.UseProxyWorkerAddress));
+                inputFields[FIELD_SECRET].setHintText(LocaleController.getString(R.string.UseProxyWorkerSecret));
             }
             typeCell[0].setChecked(currentType == 0, animated);
             typeCell[1].setChecked(currentType == 1, animated);
             typeCell[2].setChecked(currentType == 2, animated);
+            checkShareDone(animated);
         }
     }
 

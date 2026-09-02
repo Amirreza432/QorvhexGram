@@ -825,6 +825,8 @@ void ConnectionSocket::openConnection(std::string address, uint16_t port, std::s
         }
         socketAddress.sin_family = AF_INET;
         socketAddress.sin_port = htons(proxyPort);
+        socketAddress6.sin6_family = AF_INET6;
+        socketAddress6.sin6_port = htons(proxyPort);
         bool continueCheckAddress;
         if (inet_pton(AF_INET, hostToCheck.c_str(), &socketAddress.sin_addr.s_addr) != 1) {
             continueCheckAddress = true;
@@ -1557,13 +1559,23 @@ void ConnectionSocket::onHostNameResolved(std::string host, std::string ip, bool
     ConnectionsManager::getInstance(instanceNum).scheduleTask([&, host, ip, ipv6] {
         if (waitingForHostResolve == host || waitingForHostResolve == workerHost || (!overrideProxyAddress.empty() && waitingForHostResolve == overrideProxyAddress) || waitingForHostResolve == ConnectionsManager::getInstance(instanceNum).proxyAddress) {
             waitingForHostResolve = "";
-            if (ip.empty() || inet_pton(AF_INET, ip.c_str(), &socketAddress.sin_addr.s_addr) != 1) {
-                if (LOGS_ENABLED) DEBUG_E("connection(%p) can't resolve host %s address via delegate", this, host.c_str());
+            bool isResolvedIpv6 = false;
+            if (ip.empty()) {
+                if (LOGS_ENABLED) DEBUG_E("connection(%p) can't resolve host %s address via delegate (empty)", this, host.c_str());
                 closeSocket(1, -1);
                 return;
             }
-            if (LOGS_ENABLED) DEBUG_D("connection(%p) resolved host %s address %s via delegate", this, host.c_str(), ip.c_str());
-            openConnectionInternal(ipv6);
+            if (inet_pton(AF_INET, ip.c_str(), &socketAddress.sin_addr.s_addr) == 1) {
+                isResolvedIpv6 = false;
+            } else if (inet_pton(AF_INET6, ip.c_str(), &socketAddress6.sin6_addr.s6_addr) == 1) {
+                isResolvedIpv6 = true;
+            } else {
+                if (LOGS_ENABLED) DEBUG_E("connection(%p) can't parse IP %s for host %s", this, ip.c_str(), host.c_str());
+                closeSocket(1, -1);
+                return;
+            }
+            if (LOGS_ENABLED) DEBUG_D("connection(%p) resolved host %s address %s via delegate (ipv6=%d)", this, host.c_str(), ip.c_str(), (int) isResolvedIpv6);
+            openConnectionInternal(isResolvedIpv6);
         }
     });
 }
