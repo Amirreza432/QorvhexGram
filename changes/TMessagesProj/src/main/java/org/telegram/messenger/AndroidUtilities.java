@@ -4648,8 +4648,19 @@ public class AndroidUtilities {
                         }
                     }
                 }
-                if (proxyType == SharedConfig.ProxyInfo.TYPE_WORKER && TextUtils.isEmpty(port)) {
-                    port = "443";
+                if (proxyType == SharedConfig.ProxyInfo.TYPE_WORKER) {
+                    if (TextUtils.isEmpty(port)) {
+                        port = "443";
+                    }
+                    if (data != null) {
+                        String cleanIp = data.getQueryParameter("ip");
+                        if (TextUtils.isEmpty(cleanIp)) {
+                            cleanIp = data.getQueryParameter("cleanip");
+                        }
+                        if (!TextUtils.isEmpty(cleanIp) && !TextUtils.isEmpty(address) && !address.contains("#")) {
+                            address = address + "#" + cleanIp;
+                        }
+                    }
                 }
                 if (!TextUtils.isEmpty(address) && !TextUtils.isEmpty(port)) {
                     if (user == null) {
@@ -4844,10 +4855,7 @@ public class AndroidUtilities {
 
             SharedConfig.currentProxy = SharedConfig.addProxy(info);
 
-            ConnectionsManager.setProxySettings(true, info.address, info.port, info.username, info.password, info.secret, info.type);
-            for (int a = 0; a < UserConfig.MAX_ACCOUNT_COUNT; a++) {
-                ConnectionsManager.getInstance(a).resumeNetworkMaybe();
-            }
+            ConnectionsManager.setProxySettings(true, address, p, user, password, secret, info.type);
             NotificationCenter.getGlobalInstance().postNotificationName(NotificationCenter.proxySettingsChanged);
             if (activity instanceof LaunchActivity) {
                 INavigationLayout layout = ((LaunchActivity) activity).getActionBarLayout();

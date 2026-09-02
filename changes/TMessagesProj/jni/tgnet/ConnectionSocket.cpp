@@ -797,7 +797,13 @@ void ConnectionSocket::openConnection(std::string address, uint16_t port, std::s
             if (slashPos != std::string::npos) {
                 workerHost = workerHost.substr(0, slashPos);
             }
-            hostToCheck = workerHost;
+            size_t hashPos = workerHost.find('#');
+            if (hashPos != std::string::npos) {
+                hostToCheck = workerHost.substr(hashPos + 1);
+                workerHost = workerHost.substr(0, hashPos);
+            } else {
+                hostToCheck = workerHost;
+            }
             if (proxyPort == 0 || proxyPort == 1080) {
                 proxyPort = 443;
             }

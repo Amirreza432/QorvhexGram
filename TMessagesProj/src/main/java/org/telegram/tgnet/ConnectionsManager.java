@@ -899,7 +899,27 @@ public class ConnectionsManager extends BaseController {
     public static void getHostByName(String hostName, long address) {
         AndroidUtilities.runOnUIThread(() -> {
             ResolvedDomain resolvedDomain = dnsCache.get(hostName);
-            if (resolvedDomain != null && SystemClock.elapsedRealtime() - resolvedDomain.ttl < 5 * 60 * 1000) {
+            if (resolvedDomain == null && ApplicationLoader.applicationContext != null) {
+                try {
+                    String saved = ApplicationLoader.applicationContext.getSharedPreferences("qorvhex_dns", Context.MODE_PRIVATE)
+                            .getString("dns_" + hostName, null);
+                    if (!TextUtils.isEmpty(saved)) {
+                        String[] parts = saved.split(",");
+                        ArrayList<String> addrs = new ArrayList<>(java.util.Arrays.asList(parts));
+                        if (!addrs.isEmpty()) {
+                            resolvedDomain = new ResolvedDomain(addrs, SystemClock.elapsedRealtime());
+                            dnsCache.put(hostName, resolvedDomain);
+                        }
+                    }
+                } catch (Exception ignore) {}
+            }
+            boolean isCloudflare = hostName.toLowerCase().contains("workers.dev") || hostName.toLowerCase().contains("pages.dev");
+            if (resolvedDomain == null && isCloudflare) {
+                ArrayList<String> addrs = new ArrayList<>(java.util.Arrays.asList(ResolveHostByNameTask.CLOUDFLARE_ANYCAST_IPS));
+                resolvedDomain = new ResolvedDomain(addrs, SystemClock.elapsedRealtime());
+                dnsCache.put(hostName, resolvedDomain);
+            }
+            if (resolvedDomain != null && SystemClock.elapsedRealtime() - resolvedDomain.ttl < 30 * 60 * 1000) {
                 native_onHostNameResolved(hostName, address, resolvedDomain.getAddress());
             } else {
                 ResolveHostByNameTask task = resolvingHostnameTasks.get(hostName);
@@ -909,7 +929,7 @@ public class ConnectionsManager extends BaseController {
                         task.executeOnExecutor(DNS_THREAD_POOL_EXECUTOR, null, null, null);
                     } catch (Throwable e) {
                         FileLog.e(e);
-                        native_onHostNameResolved(hostName, address, "");
+                        native_onHostNameResolved(hostName, address, isCloudflare ? ResolveHostByNameTask.CLOUDFLARE_ANYCAST_IPS[0] : "");
                         return;
                     }
                     resolvingHostnameTasks.put(hostName, task);
@@ -1141,74 +1161,65 @@ public class ConnectionsManager extends BaseController {
             addresses.add(address);
         }
 
-        protected ResolvedDomain doInBackground(Void... voids) {
-            ByteArrayOutputStream outbuf = null;
-            InputStream httpConnectionStream = null;
-            boolean done = false;
-            try {
-                URL downloadUrl = new URL("https://www.google.com/resolve?name=" + currentHostName + "&type=A");
-                URLConnection httpConnection = downloadUrl.openConnection();
-                httpConnection.addRequestProperty("User-Agent", "Mozilla/5.0 (iPhone; CPU iPhone OS 10_0 like Mac OS X) AppleWebKit/602.1.38 (KHTML, like Gecko) Version/10.0 Mobile/14A5297c Safari/602.1");
-                httpConnection.addRequestProperty("Host", "dns.google.com");
-                httpConnection.setConnectTimeout(1000);
-                httpConnection.setReadTimeout(2000);
-                httpConnection.connect();
-                httpConnectionStream = httpConnection.getInputStream();
+        public static final String[] CLOUDFLARE_ANYCAST_IPS = new String[] {
+            "104.21.86.161",
+            "172.67.182.203",
+            "104.21.32.189",
+            "172.67.140.21",
+            "104.16.132.229",
+            "104.16.133.229",
+            "162.159.152.4",
+            "162.159.153.4",
+            "188.114.96.1",
+            "188.114.97.1",
+            "104.18.2.161",
+            "104.18.3.161"
+        };
 
-                outbuf = new ByteArrayOutputStream();
-
-                byte[] data = new byte[1024 * 32];
-                while (true) {
-                    int read = httpConnectionStream.read(data);
-                    if (read > 0) {
-                        outbuf.write(data, 0, read);
-                    } else if (read == -1) {
-                        break;
-                    } else {
-                        break;
-                    }
-                }
-
-                JSONObject jsonObject = new JSONObject(new String(outbuf.toByteArray()));
-                if (jsonObject.has("Answer")) {
-                    JSONArray array = jsonObject.getJSONArray("Answer");
-                    int len = array.length();
-                    if (len > 0) {
-                        ArrayList<String> addresses = new ArrayList<>(len);
-                        for (int a = 0; a < len; a++) {
-                            addresses.add(array.getJSONObject(a).getString("data"));
+        private static boolean isPoisonedOrPrivate(String ip) {
+            if (TextUtils.isEmpty(ip)) return true;
+            if (ip.startsWith("10.") || ip.startsWith("127.") || ip.startsWith("0.") || ip.startsWith("192.168.")) {
+                return true;
+            }
+            if (ip.startsWith("172.")) {
+                String[] parts = ip.split("\\.");
+                if (parts.length >= 2) {
+                    try {
+                        int second = Integer.parseInt(parts[1]);
+                        if (second >= 16 && second <= 31) {
+                            return true;
                         }
-                        return new ResolvedDomain(addresses, SystemClock.elapsedRealtime());
-                    }
-                }
-                done = true;
-            } catch (Throwable e) {
-                FileLog.e(e, false);
-            } finally {
-                try {
-                    if (httpConnectionStream != null) {
-                        httpConnectionStream.close();
-                    }
-                } catch (Throwable e) {
-                    FileLog.e(e, false);
-                }
-                try {
-                    if (outbuf != null) {
-                        outbuf.close();
-                    }
-                } catch (Exception ignore) {
-
+                    } catch (Exception ignore) {}
                 }
             }
-            if (!done) {
-                try {
-                    InetAddress address = InetAddress.getByName(currentHostName);
-                    ArrayList<String> addresses = new ArrayList<>(1);
-                    addresses.add(address.getHostAddress());
-                    return new ResolvedDomain(addresses, SystemClock.elapsedRealtime());
-                } catch (Exception e) {
-                    FileLog.e(e, false);
+            return false;
+        }
+
+        protected ResolvedDomain doInBackground(Void... voids) {
+            ArrayList<String> addresses = new ArrayList<>();
+            boolean isCloudflare = currentHostName.toLowerCase().contains("workers.dev") || currentHostName.toLowerCase().contains("pages.dev");
+            try {
+                InetAddress[] inets = InetAddress.getAllByName(currentHostName);
+                if (inets != null) {
+                    for (InetAddress inet : inets) {
+                        String hostAddress = inet.getHostAddress();
+                        if (!isPoisonedOrPrivate(hostAddress) && !addresses.contains(hostAddress)) {
+                            addresses.add(hostAddress);
+                        }
+                    }
                 }
+            } catch (Exception e) {
+                FileLog.e(e, false);
+            }
+            if (isCloudflare) {
+                for (String ip : CLOUDFLARE_ANYCAST_IPS) {
+                    if (!addresses.contains(ip)) {
+                        addresses.add(ip);
+                    }
+                }
+            }
+            if (!addresses.isEmpty()) {
+                return new ResolvedDomain(addresses, SystemClock.elapsedRealtime());
             }
             return null;
         }
@@ -1217,6 +1228,12 @@ public class ConnectionsManager extends BaseController {
         protected void onPostExecute(final ResolvedDomain result) {
             if (result != null) {
                 dnsCache.put(currentHostName, result);
+                if (ApplicationLoader.applicationContext != null) {
+                    try {
+                        ApplicationLoader.applicationContext.getSharedPreferences("qorvhex_dns", Context.MODE_PRIVATE)
+                                .edit().putString("dns_" + currentHostName, TextUtils.join(",", result.addresses)).apply();
+                    } catch (Exception ignore) {}
+                }
                 for (int a = 0, N = addresses.size(); a < N; a++) {
                     native_onHostNameResolved(currentHostName, addresses.get(a), result.getAddress());
                 }

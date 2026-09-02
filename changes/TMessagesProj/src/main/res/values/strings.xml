@@ -2691,6 +2691,7 @@
     <string name="UseProxyWorkerInfo">Cloudflare Worker Proxy (TWP) settings.</string>
     <string name="UseProxyWorkerAddress">Worker Domain or URL</string>
     <string name="UseProxyWorkerSecret">Secret (Optional)</string>
+    <string name="UseProxyCleanIp">Clean IP (Optional)</string>
     <string name="Type">Type</string>
     <string name="UseProxyTelegramError">The proxy you are using is not configured correctly and will be disabled. Please find another one.</string>
     <string name="UseProxySponsor">Proxy sponsor</string>

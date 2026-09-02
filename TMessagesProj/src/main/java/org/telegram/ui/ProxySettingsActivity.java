@@ -84,6 +84,7 @@ public class ProxySettingsActivity extends BaseFragment {
     private final static int FIELD_USER = 2;
     private final static int FIELD_PASSWORD = 3;
     private final static int FIELD_SECRET = 4;
+    private final static int FIELD_CLEAN_IP = 5;
 
     private EditTextBoldCursor[] inputFields;
     private ScrollView scrollView;
@@ -224,6 +225,13 @@ public class ProxySettingsActivity extends BaseFragment {
                         if (slashIndex != -1) {
                             addr = addr.substring(0, slashIndex);
                         }
+                        if (addr.contains("#")) {
+                            addr = addr.split("#")[0];
+                        }
+                        String cleanIp = inputFields[FIELD_CLEAN_IP].getText().toString().trim();
+                        if (!TextUtils.isEmpty(cleanIp)) {
+                            addr = addr + "#" + cleanIp;
+                        }
                         currentProxyInfo.address = addr;
                         currentProxyInfo.port = 443;
                         currentProxyInfo.secret = inputFields[FIELD_SECRET].getText().toString().trim();
@@ -321,8 +329,8 @@ public class ProxySettingsActivity extends BaseFragment {
         }
         linearLayout2.addView(inputFieldsContainer, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, LayoutHelper.WRAP_CONTENT));
 
-        inputFields = new EditTextBoldCursor[5];
-        for (int a = 0; a < 5; a++) {
+        inputFields = new EditTextBoldCursor[6];
+        for (int a = 0; a < 6; a++) {
             FrameLayout container = new FrameLayout(context);
             inputFieldsContainer.addView(container, LayoutHelper.createLinear(LayoutHelper.MATCH_PARENT, 64));
 
@@ -341,7 +349,7 @@ public class ProxySettingsActivity extends BaseFragment {
             inputFields[a].setTransformHintToHeader(true);
             inputFields[a].setLineColors(Theme.getColor(Theme.key_windowBackgroundWhiteInputField), Theme.getColor(Theme.key_windowBackgroundWhiteInputFieldActivated), Theme.getColor(Theme.key_text_RedRegular));
 
-            if (a == FIELD_IP) {
+            if (a == FIELD_IP || a == FIELD_CLEAN_IP) {
                 inputFields[a].setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS | InputType.TYPE_TEXT_VARIATION_URI);
                 inputFields[a].addTextChangedListener(new TextWatcher() {
                     @Override
@@ -419,7 +427,11 @@ public class ProxySettingsActivity extends BaseFragment {
             switch (a) {
                 case FIELD_IP:
                     inputFields[a].setHintText(LocaleController.getString(R.string.UseProxyAddress));
-                    inputFields[a].setText(currentProxyInfo.address);
+                    if (currentProxyInfo.address != null && currentProxyInfo.address.contains("#")) {
+                        inputFields[a].setText(currentProxyInfo.address.split("#")[0]);
+                    } else {
+                        inputFields[a].setText(currentProxyInfo.address);
+                    }
                     break;
                 case FIELD_PASSWORD:
                     inputFields[a].setHintText(LocaleController.getString(R.string.UseProxyPassword));
@@ -436,6 +448,15 @@ public class ProxySettingsActivity extends BaseFragment {
                 case FIELD_SECRET:
                     inputFields[a].setHintText(LocaleController.getString(R.string.UseProxySecret));
                     inputFields[a].setText(currentProxyInfo.secret);
+                    break;
+                case FIELD_CLEAN_IP:
+                    inputFields[a].setHintText(LocaleController.getString(R.string.UseProxyCleanIp));
+                    if (currentProxyInfo.address != null && currentProxyInfo.address.contains("#")) {
+                        String[] parts = currentProxyInfo.address.split("#");
+                        inputFields[a].setText(parts.length > 1 ? parts[1] : "");
+                    } else {
+                        inputFields[a].setText("");
+                    }
                     break;
             }
             inputFields[a].setSelection(inputFields[a].length());
@@ -481,10 +502,13 @@ public class ProxySettingsActivity extends BaseFragment {
         pasteCell.setOnClickListener(v -> {
             if (pasteType != -1) {
                 for (int i = 0; i < pasteFields.length; i++) {
-                    if (pasteType == TYPE_SOCKS5 && i == FIELD_SECRET) {
+                    if (pasteType == TYPE_SOCKS5 && (i == FIELD_SECRET || i == FIELD_CLEAN_IP)) {
                         continue;
                     }
-                    if ((pasteType == TYPE_MTPROTO || pasteType == TYPE_WORKER) && (i == FIELD_USER || i == FIELD_PASSWORD)) {
+                    if (pasteType == TYPE_MTPROTO && (i == FIELD_USER || i == FIELD_PASSWORD || i == FIELD_CLEAN_IP)) {
+                        continue;
+                    }
+                    if (pasteType == TYPE_WORKER && (i == FIELD_USER || i == FIELD_PASSWORD || i == FIELD_PORT)) {
                         continue;
                     }
                     if (pasteFields[i] != null) {
@@ -501,10 +525,13 @@ public class ProxySettingsActivity extends BaseFragment {
                 setProxyType(pasteType, true, () -> {
                     AndroidUtilities.hideKeyboard(inputFieldsContainer.findFocus());
                     for (int i = 0; i < pasteFields.length; i++) {
-                        if (pasteType == TYPE_SOCKS5 && i != FIELD_SECRET) {
+                        if (pasteType == TYPE_SOCKS5 && i != FIELD_SECRET && i != FIELD_CLEAN_IP) {
                             continue;
                         }
-                        if (pasteType == TYPE_MTPROTO && i != FIELD_USER && i != FIELD_PASSWORD) {
+                        if (pasteType == TYPE_MTPROTO && i != FIELD_USER && i != FIELD_PASSWORD && i != FIELD_CLEAN_IP) {
+                            continue;
+                        }
+                        if (pasteType == TYPE_WORKER && i != FIELD_USER && i != FIELD_PASSWORD && i != FIELD_PORT) {
                             continue;
                         }
                         inputFields[i].setText(null);
@@ -545,8 +572,19 @@ public class ProxySettingsActivity extends BaseFragment {
                     if (slashIndex != -1) {
                         addr = addr.substring(0, slashIndex);
                     }
+                    if (addr.contains("#")) {
+                        String[] parts = addr.split("#");
+                        addr = parts[0];
+                    }
+                    String cleanIp = inputFields[FIELD_CLEAN_IP].getText().toString().trim();
                     if (!TextUtils.isEmpty(addr)) {
                         params.append("server=").append(URLEncoder.encode(addr, "UTF-8"));
+                    }
+                    if (!TextUtils.isEmpty(cleanIp)) {
+                        if (params.length() != 0) {
+                            params.append("&");
+                        }
+                        params.append("ip=").append(URLEncoder.encode(cleanIp, "UTF-8"));
                     }
                     if (!TextUtils.isEmpty(secret)) {
                         if (params.length() != 0) {
@@ -687,7 +725,15 @@ public class ProxySettingsActivity extends BaseFragment {
                     if (pair.length != 2) continue;
                     switch (pair[0].toLowerCase()) {
                         case "server":
-                            pasteFields[FIELD_IP] = pair[1];
+                            if (pasteType == TYPE_WORKER && pair[1].contains("#")) {
+                                String[] parts = pair[1].split("#");
+                                pasteFields[FIELD_IP] = parts[0];
+                                if (parts.length > 1) {
+                                    pasteFields[FIELD_CLEAN_IP] = parts[1];
+                                }
+                            } else {
+                                pasteFields[FIELD_IP] = pair[1];
+                            }
                             break;
                         case "port":
                             pasteFields[FIELD_PORT] = pair[1];
@@ -705,6 +751,12 @@ public class ProxySettingsActivity extends BaseFragment {
                         case "secret":
                             if (pasteType == TYPE_MTPROTO || pasteType == TYPE_WORKER) {
                                 pasteFields[FIELD_SECRET] = pair[1];
+                            }
+                            break;
+                        case "ip":
+                        case "cleanip":
+                            if (pasteType == TYPE_WORKER) {
+                                pasteFields[FIELD_CLEAN_IP] = pair[1];
                             }
                             break;
                     }
@@ -815,6 +867,7 @@ public class ProxySettingsActivity extends BaseFragment {
                 bottomCells[2].setVisibility(View.GONE);
                 ((View) inputFields[FIELD_PORT].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_SECRET].getParent()).setVisibility(View.GONE);
+                ((View) inputFields[FIELD_CLEAN_IP].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_PASSWORD].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_USER].getParent()).setVisibility(View.VISIBLE);
                 inputFields[FIELD_IP].setHintText(LocaleController.getString(R.string.UseProxyAddress));
@@ -824,6 +877,7 @@ public class ProxySettingsActivity extends BaseFragment {
                 bottomCells[2].setVisibility(View.GONE);
                 ((View) inputFields[FIELD_PORT].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_SECRET].getParent()).setVisibility(View.VISIBLE);
+                ((View) inputFields[FIELD_CLEAN_IP].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_PASSWORD].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_USER].getParent()).setVisibility(View.GONE);
                 inputFields[FIELD_IP].setHintText(LocaleController.getString(R.string.UseProxyAddress));
@@ -834,10 +888,12 @@ public class ProxySettingsActivity extends BaseFragment {
                 bottomCells[2].setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_PORT].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_SECRET].getParent()).setVisibility(View.VISIBLE);
+                ((View) inputFields[FIELD_CLEAN_IP].getParent()).setVisibility(View.VISIBLE);
                 ((View) inputFields[FIELD_PASSWORD].getParent()).setVisibility(View.GONE);
                 ((View) inputFields[FIELD_USER].getParent()).setVisibility(View.GONE);
                 inputFields[FIELD_IP].setHintText(LocaleController.getString(R.string.UseProxyWorkerAddress));
                 inputFields[FIELD_SECRET].setHintText(LocaleController.getString(R.string.UseProxyWorkerSecret));
+                inputFields[FIELD_CLEAN_IP].setHintText(LocaleController.getString(R.string.UseProxyCleanIp));
             }
             typeCell[0].setChecked(currentType == 0, animated);
             typeCell[1].setChecked(currentType == 1, animated);
