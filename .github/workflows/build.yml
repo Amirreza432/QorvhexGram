@@ -86,6 +86,22 @@ jobs:
       - name: Make gradlew executable
         run: chmod +x gradlew
 
+      - name: Ensure Qorvhex Keystore exists
+        run: |
+          mkdir -p TMessagesProj/config
+          if [ ! -f "TMessagesProj/config/qorvhex.keystore" ]; then
+            echo "Generating dedicated Qorvhex release keystore..."
+            keytool -genkeypair -v \
+              -keystore "TMessagesProj/config/qorvhex.keystore" \
+              -alias "qorvhex" \
+              -keyalg RSA \
+              -keysize 2048 \
+              -validity 10000 \
+              -dname "CN=QorvhexGram, OU=Qorvhex, O=Qorvhex, L=Tehran, ST=Tehran, C=IR" \
+              -storepass "qorvhexgram123" \
+              -keypass "qorvhexgram123"
+          fi
+
       - name: Build APK
         env:
           BUILD_VARIANT: ${{ github.event.inputs.build_variant || 'Standalone' }}

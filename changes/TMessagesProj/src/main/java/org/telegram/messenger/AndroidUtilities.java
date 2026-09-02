@@ -4645,8 +4645,10 @@ public class AndroidUtilities {
                             user = data.getQueryParameter("user");
                             password = data.getQueryParameter("pass");
                             secret = data.getQueryParameter("secret");
-                        }
                     }
+                }
+                if (proxyType == SharedConfig.ProxyInfo.TYPE_WORKER && TextUtils.isEmpty(port)) {
+                    port = "443";
                 }
                 if (!TextUtils.isEmpty(address) && !TextUtils.isEmpty(port)) {
                     if (user == null) {
