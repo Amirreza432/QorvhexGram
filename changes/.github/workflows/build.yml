@@ -19,6 +19,15 @@ on:
           - 'Release'
           - 'Debug'
           - 'All'
+      target_abi:
+        description: 'معماری پردازنده (ABI) - برای بیلد فوق سریع arm64-v8a را انتخاب کنید'
+        required: false
+        default: 'arm64-v8a'
+        type: choice
+        options:
+          - 'arm64-v8a'
+          - 'All'
+          - 'armeabi-v7a'
 
 jobs:
   build:
@@ -55,6 +64,14 @@ jobs:
           java-version: '17'
           cache: 'gradle'
 
+      - name: Setup ccache
+        uses: hendrikmuhs/ccache-action@v1.2
+        with:
+          key: ${{ runner.os }}-ccache-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-ccache-
+          max-size: 3G
+
       - name: Install Android SDK, NDK and CMake
         run: |
           sudo chown -R $USER:$USER $ANDROID_HOME
@@ -72,9 +89,10 @@ jobs:
       - name: Build APK
         env:
           BUILD_VARIANT: ${{ github.event.inputs.build_variant || 'Standalone' }}
+          TARGET_ABI: ${{ github.event.inputs.target_abi || 'arm64-v8a' }}
         run: |
-          GRADLE_ARGS="--stacktrace --info --no-daemon -Dorg.gradle.jvmargs=-Xmx4g"
-          echo "Building variant: $BUILD_VARIANT"
+          GRADLE_ARGS="--stacktrace --info --no-daemon -Dorg.gradle.jvmargs=-Xmx4g -PtargetAbi=$TARGET_ABI"
+          echo "Building variant: $BUILD_VARIANT with target ABI: $TARGET_ABI"
           if [ "$BUILD_VARIANT" = "Standalone" ]; then
             ./gradlew :TMessagesProj_AppStandalone:assembleAfatStandalone $GRADLE_ARGS
           elif [ "$BUILD_VARIANT" = "Release" ]; then
