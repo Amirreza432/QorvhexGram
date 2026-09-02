@@ -1256,6 +1256,7 @@ void ConnectionSocket::onEvent(uint32_t events) {
             }
         }
     }
+    }
     if (events & EPOLLOUT) {
         int32_t error;
         if (checkSocketError(&error) != 0) {
