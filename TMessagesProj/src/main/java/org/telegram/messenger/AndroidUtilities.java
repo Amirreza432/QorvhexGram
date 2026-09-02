@@ -4732,7 +4732,7 @@ public class AndroidUtilities {
             tableView.addRow(getString(R.string.UseProxyPassword), password);
         }
         if (type == SharedConfig.ProxyInfo.TYPE_WORKER) {
-            tableView.addRow(getString(R.string.Type), getString(R.string.UseProxyWorker));
+            tableView.addRow("Type", getString(R.string.UseProxyWorker));
         }
         final ButtonSpan.TextViewButtons[] statusTextView = new ButtonSpan.TextViewButtons[1];
         tableView.addRow(getString(R.string.ProxyStatus), "", statusTextView);
