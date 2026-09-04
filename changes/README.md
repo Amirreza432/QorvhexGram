@@ -1,6 +1,6 @@
 <div align="center">
 
-# 🚀 QorvhexGram
+# 🚀 QorvhexGram (قُروِکس گرام)
 
 **کلاینت پیشرفته، پرسرعت و ضد فیلتر تلگرام برای اندروید با پشتیبانی بومی از Cloudflare Worker Proxy**
 
