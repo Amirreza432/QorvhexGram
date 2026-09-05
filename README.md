@@ -124,6 +124,22 @@ tg://worker?server=your-worker.subdomain.workers.dev&port=443&secret=YOUR_SECRET
 
 ---
 
+## 📢 ارتباط با ما و کانال تلگرام
+
+برای اطلاع از آخرین به‌روزرسانی‌ها، آموزش‌های پیشرفته و ارتباط مستقیم با توسعه‌دهنده به کانال تلگرام ما بپیوندید:
+
+<br>
+
+<p align="center">
+  <a href="https://t.me/Qorvhex_Channel" target="_blank">
+    <img src="https://img.shields.io/badge/Telegram-Join%20Qorvhex%20Channel-2CA5E0?style=for-the-badge&logo=telegram&logoColor=white" alt="Qorvhex Telegram Channel" />
+  </a>
+</p>
+
+</div>
+
+---
+
 ## 📜 لایسنس و حقوق نشر
 
 این نرم‌افزار بر پایه سورس‌کد رسمی تلگرام اندروید توسعه یافته و تحت مجوز **GNU General Public License v2 / v3** منتشر شده است.
