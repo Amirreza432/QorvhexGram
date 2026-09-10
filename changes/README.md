@@ -1,12 +1,14 @@
 <div align="center">
 
-# 🚀 QorvhexGram (قُروِکس گرام)
+# 🚀 QorvhexGram
 
-**کلاینت پیشرفته، پرسرعت و ضد فیلتر تلگرام برای اندروید با پشتیبانی بومی از Cloudflare Worker Proxy**
+<p dir="rtl"><b>کلاینت پیشرفته، پرسرعت و ضد فیلتر تلگرام برای اندروید با پشتیبانی بومی از Cloudflare Worker Proxy</b></p>
 
 [![Telegram](https://img.shields.io/badge/Telegram-Android-blue.svg?logo=telegram)](https://telegram.org)
 [![Worker Core](https://img.shields.io/badge/Worker_Core-TWP-orange.svg?logo=cloudflare)](https://github.com/Qorvhex/TWP)
 [![License](https://img.shields.io/badge/License-GPLv2%20%2F%20GPLv3-green.svg)](LICENSE)
+
+<br/>
 
 [معرفی و هدف](#-این-فورک-چیست-و-چه-کاری-انجام-میدهد) •
 [ویژگی‌های کلیدی](#-ویژگیهای-برجسته) •
@@ -19,6 +21,8 @@
 
 </div>
 
+<div dir="rtl">
+
 ## 📖 این فورک چیست و چه کاری انجام می‌دهد؟
 
 **QorvhexGram** یک نسخه بهینه‌سازی‌شده و مستقل از کلاینت رسمی تلگرام اندروید است که با هدف **حذف دائمی نیاز به VPN و دور زدن فیلترینگ شدید در ایران** توسعه داده شده است.
@@ -27,10 +31,10 @@
 در شبکه‌های فیلترشده، پروتکل‌های سنتی مانند MTProto معمولی یا پروکسی‌های اسپانسری (MTProxy) و Socks5 به سادگی توسط سیستم‌های بازرسی عمیق بسته‌ها (DPI) شناسایی و مسدود می‌شوند. علاوه بر این، روشن نگه داشتن دائمی فیلترشکن‌ها و نرم‌افزارهای جانبی (مثل V2Ray یا Clash) باتری گوشی را به سرعت تخلیه کرده، دستگاه را داغ می‌کند و پینگ را بالا می‌برد.
 
 ### 💡 راهکار QorvhexGram چیست؟
-در این فورک، پروتکل اختصاصی **Cloudflare Worker WebSocket Proxy** به‌صورت مستقیم در لایه‌ی کدهای اصلی تلگرام (C++ Native Core و لایه شبکه `tgnet`) پیاده‌سازی شده است. 
+در این فورک، پروتکل اختصاصی **Cloudflare Worker WebSocket Proxy** به‌صورت مستقیم در لایه‌ی کدهای اصلی تلگرام (C++ Native Core و لایه شبکه `tgnet`) پیاده‌سازی شده است.  
 ترافیک تلگرام از طریق یک تانل امن وب‌سوکت (WebSocket) با رمزنگاری مدرن **TLS 1.3** به نزدیک‌ترین سرورهای لبه‌ی کلودفلر (Cloudflare CDN Edge) فرستاده شده و از آنجا بدون هیچ افت کیفیتی مستقیماً به دیتاسنترهای اصلی تلگرام متصل می‌شود.
 
-> از دیدگاه فیلترینگ و سیستم‌های پایش ترافیک، این اتصال دقیقاً شبیه باز کردن یک وبسایت خارجی عادی با استاندارد امن HTTPS است و به همین دلیل شناسایی یا مسدود کردن آن فوق‌العاده دشوار است.
+> **نکته:** از دیدگاه فیلترینگ و سیستم‌های پایش ترافیک، این اتصال دقیقاً شبیه باز کردن یک وبسایت خارجی عادی با استاندارد امن HTTPS است و به همین دلیل شناسایی یا مسدود کردن آن فوق‌العاده دشوار است.
 
 ---
 
@@ -94,9 +98,14 @@
 ### روش دوم: استفاده از لینک سریع یک‌کلیکه
 می‌توانید اطلاعات پروکسی خود را در قالب یک لینک سریع بسازید و با لمس آن، پروکسی مستقیماً به تلگرام اضافه خواهد شد:
 
+<div dir="ltr" align="left">
+
 ```text
 tg://worker?server=your-worker.subdomain.workers.dev&port=443&secret=YOUR_SECRET&clean_ip=104.21.86.161
 ```
+
+</div>
+
 *(اگر سکرت یا آی‌پی تمیز ندارید، پارامترهای مربوطه را از لینک حذف کنید)*
 
 ---
@@ -113,19 +122,30 @@ tg://worker?server=your-worker.subdomain.workers.dev&port=443&secret=YOUR_SECRET
 
 ### مراحل بیلد:
 1. مخزن را همراه با ساب‌ماژول‌ها کلون کنید:
-   ```bash
-   git clone --recursive https://github.com/Qorvhex/QorvhexGram.git
-   ```
+<div dir="ltr" align="left">
+
+```bash
+git clone --recursive https://github.com/Qorvhex/QorvhexGram.git
+```
+
+</div>
+
 2. کلید امضای اختصاصی خود (`release.keystore`) را در پوشه `TMessagesProj/config` قرار دهید.
 3. مشخصات رمز و نام مستعار کلید را در فایل `gradle.properties` تنظیم کنید.
 4. پروژه را در اندروید استودیو باز کنید و تسک گریدل زیر را اجرا کنید:
-   ```bash
-   ./gradlew assembleAfatDebug
-   ```
+<div dir="ltr" align="left">
+
+```bash
+./gradlew assembleAfatDebug
+```
+
+</div>
 
 ---
 
 ## 📜 لایسنس و حقوق نشر
 
-این نرم‌افزار بر پایه سورس‌کد رسمی تلگرام اندروید توسعه یافته و تحت مجوز **GNU General Public License v2 / v3** منتشر شده است.
+این نرم‌افزار بر پایه سورس‌کد رسمی تلگرام اندروید توسعه یافته و تحت مجوز **GNU General Public License v2 / v3** منتشر شده است.  
 هسته پروکسی ورکر با الهام و اقتباس از پروژه [TWP](https://github.com/Qorvhex/TWP) پیاده‌سازی شده است.
+
+</div>
