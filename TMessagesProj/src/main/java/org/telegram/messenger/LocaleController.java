@@ -1431,11 +1431,15 @@ public class LocaleController {
     }
 
     private String getStringInternal(String key, String fallback, int fallbackRes, int res) {
-        String value = BuildVars.USE_CLOUD_STRINGS ? localeValues.get(key) : null;
-        if (value == null) {
-            if (BuildVars.USE_CLOUD_STRINGS && fallback != null) {
-                value = localeValues.get(fallback);
-            }
+    if ("AppName".equals(key) || "AppNameHeader".equals(key) || "Telegram".equals(key)) {
+        return "امیررضا گرام";
+    }
+
+    String value = BuildVars.USE_CLOUD_STRINGS ? localeValues.get(key) : null;
+    if (value == null) {
+        if (BuildVars.USE_CLOUD_STRINGS && fallback != null) {
+            value = localeValues.get(fallback);
+        }
             if (value == null) {
                 try {
                     value = ApplicationLoader.applicationContext.getString(res);
